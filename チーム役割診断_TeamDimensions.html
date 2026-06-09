@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>チーム役割診断ツール ｜ Team Dimensions</title>
+<style>
+  :root{
+    --c-creator:#7c5cff; --c-advancer:#ff8a3d; --c-refiner:#2bb3a3; --c-executor:#3b82f6;
+    --c-flexer:#9aa3b2;
+    --bg:#f5f7fb; --card:#ffffff; --ink:#1f2733; --muted:#6b7686; --line:#e3e8f0;
+    --accent:#2d3a8c;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Segoe UI","Hiragino Kaku Gothic ProN","Yu Gothic UI",Meiryo,sans-serif;
+       background:var(--bg);color:var(--ink);line-height:1.7;-webkit-font-smoothing:antialiased}
+  header{background:linear-gradient(120deg,#2d3a8c,#5b4bbf);color:#fff;padding:22px 20px 18px}
+  header .wrap{max-width:980px;margin:0 auto}
+  header h1{margin:0 0 4px;font-size:22px;letter-spacing:.02em}
+  header p{margin:0;opacity:.9;font-size:13px}
+  .privacy{margin-top:10px;font-size:12px;background:rgba(255,255,255,.14);
+           border:1px solid rgba(255,255,255,.25);border-radius:8px;padding:7px 11px;display:inline-block}
+  nav{background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
+  nav .wrap{max-width:980px;margin:0 auto;display:flex;gap:4px;padding:0 12px}
+  nav button{border:0;background:none;padding:14px 16px;font-size:14px;font-weight:600;color:var(--muted);
+             cursor:pointer;border-bottom:3px solid transparent}
+  nav button.active{color:var(--accent);border-bottom-color:var(--accent)}
+  main{max-width:980px;margin:0 auto;padding:22px 16px 80px}
+  .view{display:none}.view.active{display:block;animation:fade .25s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:18px;
+        box-shadow:0 1px 3px rgba(20,30,60,.04)}
+  h2{font-size:18px;margin:0 0 12px;border-left:5px solid var(--accent);padding-left:10px}
+  h3{font-size:15px;margin:18px 0 8px}
+  .lead{color:var(--muted);font-size:14px;margin:0 0 14px}
+  label.fld{display:block;font-size:13px;font-weight:600;margin:0 0 6px;color:var(--muted)}
+  input[type=text]{width:100%;max-width:340px;padding:9px 12px;border:1px solid var(--line);border-radius:8px;
+                   font-size:15px}
+  /* progress */
+  .progress-wrap{position:sticky;top:49px;background:var(--bg);padding:10px 0;z-index:10}
+  .progress-bar{height:9px;background:#e6eaf2;border-radius:6px;overflow:hidden}
+  .progress-fill{height:100%;width:0;background:linear-gradient(90deg,#5b4bbf,#2bb3a3);transition:width .3s}
+  .progress-txt{font-size:12px;color:var(--muted);margin-top:5px}
+  /* question */
+  .q{border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:12px;background:#fff}
+  .q.answered{border-color:#cdd8ee;background:#fbfcff}
+  .q .qno{font-size:12px;color:#9aa3b2;font-weight:700}
+  .q .qtxt{font-size:15px;margin:2px 0 12px}
+  .scale{display:flex;gap:6px;flex-wrap:wrap}
+  .scale label{flex:1;min-width:84px;text-align:center;border:1px solid var(--line);border-radius:8px;
+               padding:8px 4px;font-size:11px;color:var(--muted);cursor:pointer;transition:.15s;user-select:none}
+  .scale input{display:none}
+  .scale label:hover{border-color:#9aa3b2}
+  .scale input:checked + span{}
+  .scale label.sel{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:700}
+  .scale .num{display:block;font-size:16px;font-weight:700;margin-bottom:2px}
+  .btn{display:inline-block;background:var(--accent);color:#fff;border:0;border-radius:10px;
+       padding:12px 22px;font-size:15px;font-weight:700;cursor:pointer}
+  .btn:hover{filter:brightness(1.08)}
+  .btn.ghost{background:#fff;color:var(--accent);border:1.5px solid var(--accent)}
+  .btn.sm{padding:8px 14px;font-size:13px}
+  .btnrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+  .warn{color:#c0392b;font-size:13px;margin-top:8px;min-height:18px}
+  /* result */
+  .res-head{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+  .badge{font-size:13px;font-weight:700;color:#fff;border-radius:20px;padding:5px 14px;display:inline-block}
+  .scorebars div.row{display:flex;align-items:center;gap:10px;margin:7px 0}
+  .scorebars .nm{width:118px;font-size:13px;font-weight:600}
+  .scorebars .track{flex:1;height:16px;background:#eef1f7;border-radius:8px;overflow:hidden}
+  .scorebars .fill{height:100%;border-radius:8px}
+  .scorebars .pct{width:46px;text-align:right;font-size:13px;font-weight:700}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:720px){.grid2{grid-template-columns:1fr}}
+  .pill-list li{margin-bottom:5px}
+  .zproc{display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin:6px 0 2px}
+  .zstep{flex:1;min-width:110px;text-align:center;border-radius:10px;padding:10px 6px;color:#fff;font-weight:700;font-size:13px;position:relative}
+  .zarrow{color:#9aa3b2;font-weight:700}
+  .zstep.dim{opacity:.32}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:center}
+  th{background:#f0f3fa;font-weight:700}
+  td.nm{text-align:left;font-weight:600}
+  .tag{display:inline-block;font-size:11px;font-weight:700;color:#fff;border-radius:12px;padding:2px 9px}
+  .note{font-size:12px;color:var(--muted)}
+  .empty{color:var(--muted);text-align:center;padding:30px 10px}
+  .diag-item{border-left:4px solid;padding:8px 12px;margin:8px 0;border-radius:6px;background:#fafbfe;font-size:14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;margin-top:6px}
+  .legend span{display:inline-flex;align-items:center;gap:5px}
+  .dot{width:11px;height:11px;border-radius:50%;display:inline-block}
+  .typecard{border-top:5px solid;border-radius:12px}
+  .kv{font-size:13px}.kv b{color:var(--ink)}
+  .hidden{display:none!important}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <h1>チーム役割診断ツール</h1>
+  <p>Team Dimensions（クリエイター／アドバンサー／リファイナー／エクセキューター＋フレックサー）に基づく適材適所アセスメント</p>
+  <div class="privacy">🔒 入力・結果はこの端末の中だけで処理されます（外部送信なし）。氏名は任意・匿名ID（職員No.等）でも構いません。</div>
+</div></header>
+
+<nav><div class="wrap">
+  <button data-v="quiz" class="active">① 診断する</button>
+  <button data-v="result">② 結果</button>
+  <button data-v="team">③ チーム分析</button>
+  <button data-v="guide">タイプ解説</button>
+</div></nav>
+
+<main>
+  <!-- ========== QUIZ ========== -->
+  <section id="quiz" class="view active">
+    <div class="card">
+      <h2>診断する（全48問・約10〜15分）</h2>
+      <p class="lead">直感で、ふだんの自分にどれくらい当てはまるかを6段階で選んでください。「仕事ではこうすべき」ではなく「実際の自分はどうか」で答えるのが精度のコツです。深く悩まず、最初の感覚で。</p>
+      <label class="fld" for="uname">氏名 / 匿名ID（任意）</label>
+      <input type="text" id="uname" placeholder="例）職員No.12 / 山田 など" autocomplete="off">
+    </div>
+
+    <div class="progress-wrap">
+      <div class="progress-bar"><div class="progress-fill" id="pfill"></div></div>
+      <div class="progress-txt" id="ptxt">0 / 48 問 回答済み</div>
+    </div>
+
+    <div id="questions"></div>
+
+    <div class="card" style="text-align:center">
+      <button class="btn" id="submitBtn">結果を見る ▶</button>
+      <div class="warn" id="submitWarn"></div>
+    </div>
+  </section>
+
+  <!-- ========== RESULT ========== -->
+  <section id="result" class="view">
+    <div id="resultEmpty" class="card empty">まだ診断結果がありません。「① 診断する」から回答してください。</div>
+    <div id="resultBody" class="hidden"></div>
+  </section>
+
+  <!-- ========== TEAM ========== -->
+  <section id="team" class="view">
+    <div class="card">
+      <h2>チーム分析（適材適所・Zプロセス充足チェック）</h2>
+      <p class="lead">メンバーの診断結果を集めて、チーム全体の役割バランスを俯瞰します。発想→推進→洗練→実行（Zプロセス）のどこが厚く・薄いかを診断し、配置・補強のヒントを出します。</p>
+      <div class="btnrow">
+        <button class="btn sm" id="addCurrentBtn">いま診断した人を追加</button>
+        <button class="btn sm ghost" id="loadFilesBtn">保存ファイル(.json)を読み込む</button>
+        <input type="file" id="fileInput" accept=".json" multiple class="hidden">
+        <button class="btn sm ghost" id="exportCsvBtn">CSVで書き出す</button>
+        <button class="btn sm ghost" id="clearTeamBtn">一覧をクリア</button>
+      </div>
+      <p class="note" style="margin-top:8px">※ メンバー一覧はこの端末のブラウザ内（localStorage）に保存され、次に開いたときも残ります。共有PCでは使用後の「クリア」を推奨します。</p>
+    </div>
+    <div id="teamBody"></div>
+  </section>
+
+  <!-- ========== GUIDE ========== -->
+  <section id="guide" class="view"></section>
+</main>
+
+<script>
+/* ============================================================
+   Team Dimensions — タイプ定義
+   ============================================================ */
+const ROLES = {
+  creator:{key:"creator",name:"クリエイター",en:"Creator",color:"var(--creator-x)",hex:"#7c5cff",
+    short:"発想・概念化",
+    desc:"既存の枠組みを越えて『大きな展望』を描く発想家。ブレインストーミングで新しいアイデアや抽象的・概念的な切り口を生み出す。プロジェクトの種をつくる起点の役割。",
+    strengths:["独創的な発想・新しい切り口","前提を問い直す本質志向","可能性やビジョンを広げる力"],
+    cautions:["実行や細部への関心が薄くなりがち","アイデアが拡散し、まとまりにくい","現実的な制約を見落としやすい"],
+    tips:"アドバンサーやエクセキューターと組むと、発想が形になる。締切とゴールを明確にしてもらうと力を発揮。"},
+  advancer:{key:"advancer",name:"アドバンサー",en:"Advancer",hex:"#ff8a3d",
+    short:"推進・展開",
+    desc:"生まれたばかりのアイデアの価値をいち早く見抜き、人を巻き込み計画に落として前へ進める推進者。チームの目標を熱心にサポートし、勢いを生む。",
+    strengths:["人を巻き込み賛同を得る力","アイデアを行動・計画に変換","チームを鼓舞し前進させる推進力"],
+    cautions:["検証が甘いまま進めがち","細部を飛ばしてしまうことがある","勢い任せで足元を固め損ねる"],
+    tips:"リファイナーと組むと『勢い』に『精度』が加わる。立ち止まって検証する相棒を意識的に置くと安定。"},
+  refiner:{key:"refiner",name:"リファイナー",en:"Refiner",hex:"#2bb3a3",
+    short:"洗練・分析",
+    desc:"疑いの視点からアイデアを客観的・体系的に分析し、欠点やリスクを洗い出して品質を高める分析家。詳細と正確さにこだわり、計画の穴を見つける。",
+    strengths:["論理的・客観的な検証力","リスクや矛盾を見抜く力","細部の正確さ・品質へのこだわり"],
+    cautions:["批判的になりすぎることがある","慎重すぎて決断・前進が遅れる","創造性や勢いを削いでしまうことも"],
+    tips:"クリエイター/アドバンサーの熱量を否定せず『より良くする』姿勢で関わると、チームの信頼を得やすい。"},
+  executor:{key:"executor",name:"エクセキューター",en:"Executor",hex:"#3b82f6",
+    short:"実行・完遂",
+    desc:"結果を出すために計画を着実に実行し、最後までやり遂げる実務の担い手。秩序・締切・品質を守り、プロジェクトをゴールまで運ぶ。",
+    strengths:["決めたことを完遂する実行力","締切・秩序・約束を守る信頼感","地道な作業を続ける持続力"],
+    cautions:["急な変化・方針転換に弱い","早い段階で不備を指摘し前進を止めがち","新しい発想より手順を優先しがち"],
+    tips:"クリエイターの発想段階では『止める』より『整える』姿勢を。変化の理由を共有してもらうと動きやすい。"},
+  flexer:{key:"flexer",name:"フレックサー",en:"Flexer",hex:"#7a8699",
+    short:"柔軟・調整",
+    desc:"特定の突出した役割を持たず、4つの役割をバランスよく備えた『つなぎ役』。状況やチームのニーズに合わせて、不足している役割を柔軟に引き受けて全体を調整する。",
+    strengths:["状況に応じて役割を切り替える柔軟性","チームの穴を埋める調整力","異なるタイプ同士の橋渡し"],
+    cautions:["自分の立ち位置・専門が曖昧になりがち","器用貧乏になり評価されにくいことも","強い主張が必要な場面で埋もれやすい"],
+    tips:"『今このチームに足りない役割』を見極めて意識的に担うと、唯一無二の価値になる。"}
+};
+const ZORDER = ["creator","advancer","refiner","executor"];
+
+/* ============================================================
+   設問（各タイプ12問・reverse=逆転項目）
+   ============================================================ */
+const ITEMS = {
+ creator:[
+  ["まだ誰も思いついていない新しいアイデアを考えるのが好きだ",false],
+  ["「そもそも何のためか」と前提から問い直すことが多い",false],
+  ["既存のやり方にとらわれず、自由に発想を広げられる",false],
+  ["抽象的・概念的なテーマについて考えるのが苦にならない",false],
+  ["一見関係のない物事を結びつけて、新しい発想を生むことがある",false],
+  ["アイデア出しの場では、人より多くの案を出すほうだ",false],
+  ["「もし〜だったら」と仮説や空想を巡らせるのが好きだ",false],
+  ["細かい制約より、大きな可能性やビジョンに惹かれる",false],
+  ["決まった作業より、ゼロから何かを生み出す仕事にやりがいを感じる",false],
+  ["他の人が「無理」と思うことにも、面白さや可能性を感じる",false],
+  ["物事を、これまでと違う切り口でとらえ直すのが得意だ",false],
+  ["新しい発想より、決められた手順どおりに進めるほうが安心する",true]
+ ],
+ advancer:[
+  ["良いアイデアを見つけると、実現に向けて積極的に動かしたくなる",false],
+  ["周囲を巻き込んで物事を前に進めるのが得意だ",false],
+  ["アイデアを具体的な計画や行動に落とし込むのが好きだ",false],
+  ["目標に向けてチームを励まし、支えることにやりがいを感じる",false],
+  ["新しい取り組みに前向きで、すぐ行動に移すほうだ",false],
+  ["自分の熱意を伝えて、人の賛同を得るのが得意だ",false],
+  ["物事を停滞させず、勢いをつけて進めたい",false],
+  ["チャンスを見つけたら、逃さず形にしようとする",false],
+  ["プレゼンや交渉など、人を動かす場面が好きだ",false],
+  ["細かく考えすぎる前に「まずやってみよう」と動くほうだ",false],
+  ["仲間のやる気を高める言動を、自然にとっている",false],
+  ["人を巻き込むより、一人で黙々と進めるほうが性に合う",true]
+ ],
+ refiner:[
+  ["アイデアの欠点やリスクを、冷静に見つけ出すのが得意だ",false],
+  ["物事を客観的・論理的に検証してから判断したい",false],
+  ["細部の正確さや品質に強くこだわる",false],
+  ["「本当にうまくいくのか」と批判的な視点で検討する",false],
+  ["データや根拠に基づいて意見を述べることが多い",false],
+  ["計画の穴や矛盾に気づきやすいほうだ",false],
+  ["感情よりも事実・論理を重視して判断する",false],
+  ["物事を体系立てて整理・分析するのが好きだ",false],
+  ["早まった決定を避け、慎重に吟味したい",false],
+  ["他人の提案を鵜呑みにせず、まず疑ってかかる",false],
+  ["精度の高いアウトプットを出すことに強いこだわりがある",false],
+  ["細かい検証よりも、勢いで進めてしまうほうが好きだ",true]
+ ],
+ executor:[
+  ["一度決めたことは、最後までやり遂げる",false],
+  ["計画を着実に実行に移すのが得意だ",false],
+  ["締め切りや約束は必ず守る",false],
+  ["手順や秩序を保ちながら物事を進めたい",false],
+  ["地道な作業も、コツコツと続けられる",false],
+  ["過程よりも「結果を出すこと」に強くこだわる",false],
+  ["やるべきことを整理し、確実にこなしていくのが好きだ",false],
+  ["周囲が動かないときも、自分が実行役を引き受ける",false],
+  ["安定して成果を出し続けることに自信がある",false],
+  ["計画どおりに物事が完了すると、強い満足を感じる",false],
+  ["「頼れる実務の担い手」だと言われることが多い",false],
+  ["途中で飽きてしまい、最後までやり切れないことが多い",true]
+ ]
+};
+const SCALE = [
+  [1,"まったく<br>当てはまらない"],[2,"当てはまら<br>ない"],[3,"やや当て<br>はまらない"],
+  [4,"やや<br>当てはまる"],[5,"当てはまる"],[6,"非常に<br>当てはまる"]
+];
+
+/* ---- 設問を役割を混ぜた順に並べる（streak回避） ---- */
+function buildQuizOrder(){
+  const order=[]; const max=12;
+  for(let i=0;i<max;i++){ for(const r of ZORDER){ order.push({role:r,idx:i}); } }
+  return order; // creator0,adv0,ref0,exe0,creator1,...
+}
+const QUIZ = buildQuizOrder();
+
+/* ============================================================
+   描画：設問
+   ============================================================ */
+const qWrap = document.getElementById('questions');
+function renderQuestions(){
+  qWrap.innerHTML='';
+  QUIZ.forEach((q,n)=>{
+    const item=ITEMS[q.role][q.idx];
+    const div=document.createElement('div');
+    div.className='q'; div.dataset.role=q.role; div.dataset.idx=q.idx; div.dataset.rev=item[1]?1:0;
+    div.id='q'+n;
+    let scaleHtml='';
+    SCALE.forEach(s=>{
+      scaleHtml+=`<label data-v="${s[0]}"><span class="num">${s[0]}</span><span>${s[1]}</span>
+        <input type="radio" name="q${n}" value="${s[0]}"></label>`;
+    });
+    div.innerHTML=`<div class="qno">Q${n+1} / 48</div>
+      <div class="qtxt">${item[0]}</div>
+      <div class="scale">${scaleHtml}</div>`;
+    qWrap.appendChild(div);
+    div.querySelectorAll('.scale label').forEach(lb=>{
+      lb.addEventListener('click',()=>{
+        div.querySelectorAll('.scale label').forEach(x=>x.classList.remove('sel'));
+        lb.classList.add('sel');
+        lb.querySelector('input').checked=true;
+        div.classList.add('answered');
+        updateProgress();
+      });
+    });
+  });
+}
+function updateProgress(){
+  const done=qWrap.querySelectorAll('.q.answered').length;
+  document.getElementById('pfill').style.width=(done/48*100)+'%';
+  document.getElementById('ptxt').textContent=`${done} / 48 問 回答済み`;
+}
+
+/* ============================================================
+   採点
+   ============================================================ */
+function scoreQuiz(){
+  const raw={creator:0,advancer:0,refiner:0,executor:0};
+  let unanswered=[];
+  QUIZ.forEach((q,n)=>{
+    const sel=qWrap.querySelector(`input[name="q${n}"]:checked`);
+    if(!sel){unanswered.push(n+1);return;}
+    let v=parseInt(sel.value,10);
+    if(ITEMS[q.role][q.idx][1]) v=7-v;       // 逆転
+    raw[q.role]+=v;
+  });
+  if(unanswered.length) return {error:unanswered};
+  // 各役割 12問 → 12..72 → 0..100
+  const norm={};
+  for(const r of ZORDER) norm[r]=Math.round((raw[r]-12)/60*1000)/10;
+  return {scores:norm};
+}
+
+/* ---- フレックサー判定・主要タイプ ---- */
+function interpret(scores){
+  const arr=ZORDER.map(r=>({r,v:scores[r]})).sort((a,b)=>b.v-a.v);
+  const spread=arr[0].v-arr[3].v;
+  const gap12=arr[0].v-arr[1].v;
+  let type, isFlexer=false, secondary=null;
+  if(spread<12){ type="flexer"; isFlexer=true; }
+  else{ type=arr[0].r; if(gap12<6) secondary=arr[1].r; }
+  return {sorted:arr,spread,type,isFlexer,secondary,primary:arr[0].r};
+}
+
+/* ============================================================
+   結果描画
+   ============================================================ */
+let CURRENT=null; // {name,scores,interp,date}
+function showResult(rec){
+  CURRENT=rec;
+  document.getElementById('resultEmpty').classList.add('hidden');
+  const body=document.getElementById('resultBody'); body.classList.remove('hidden');
+  const {scores}=rec; const it=rec.interp;
+  const mainRole=ROLES[it.type];
+  const secText = it.secondary ? `（サブ：<b>${ROLES[it.secondary].name}</b>）` : '';
+
+  // score bars
+  let bars='';
+  ZORDER.forEach(r=>{
+    bars+=`<div class="row"><div class="nm">${ROLES[r].name}</div>
+      <div class="track"><div class="fill" style="width:${scores[r]}%;background:${ROLES[r].hex}"></div></div>
+      <div class="pct">${scores[r].toFixed(0)}</div></div>`;
+  });
+
+  // z-process position
+  let z='';
+  ZORDER.forEach((r,i)=>{
+    const on = (r===it.primary) || (it.isFlexer);
+    z+=`<div class="zstep ${on?'':'dim'}" style="background:${ROLES[r].hex}">
+        ${ROLES[r].name}<br><span style="font-weight:400;font-size:11px">${ROLES[r].short}</span></div>`;
+    if(i<3) z+=`<div class="zarrow">▶</div>`;
+  });
+
+  const clarity = it.isFlexer ? "バランス型（突出役割なし）"
+    : it.spread>=35 ? "非常に明確" : it.spread>=22 ? "明確" : "やや明確";
+
+  body.innerHTML = `
+   <div class="card">
+     <div class="res-head">
+       <div>
+         <div class="note">${rec.name?('診断者：'+escapeHtml(rec.name)+' ／ '):''}${rec.date}</div>
+         <h2 style="border:0;padding:0;margin:6px 0">あなたの主要タイプ：
+           <span class="badge" style="background:${mainRole.hex}">${mainRole.name}</span> ${secText}</h2>
+         <p class="note" style="margin:2px 0">タイプの明確さ：<b>${clarity}</b>（1位と4位の差 ${it.spread.toFixed(0)}pt）</p>
+       </div>
+       ${radarSVG(scores)}
+     </div>
+     <p style="margin:10px 0 0">${mainRole.desc}</p>
+   </div>
+
+   <div class="card">
+     <h3>4タイプのスコア（0〜100）</h3>
+     <div class="scorebars">${bars}</div>
+     <div class="legend">
+       <span><i class="dot" style="background:#7c5cff"></i>クリエイター=発想</span>
+       <span><i class="dot" style="background:#ff8a3d"></i>アドバンサー=推進</span>
+       <span><i class="dot" style="background:#2bb3a3"></i>リファイナー=洗練</span>
+       <span><i class="dot" style="background:#3b82f6"></i>エクセキューター=実行</span>
+     </div>
+   </div>
+
+   <div class="card">
+     <h3>Zプロセスの中でのあなたの位置</h3>
+     <p class="note">プロジェクトは「発想→推進→洗練→実行」の流れ（Zプロセス）で進みます。あなたが最も力を発揮する局面が点灯しています。</p>
+     <div class="zproc">${z}</div>
+     ${it.isFlexer?'<p class="note">※ フレックサーは全局面をバランスよく担える「つなぎ役」です。</p>':''}
+   </div>
+
+   <div class="card grid2">
+     <div><h3>強み</h3><ul class="pill-list">${mainRole.strengths.map(s=>`<li>✅ ${s}</li>`).join('')}</ul></div>
+     <div><h3>気をつけたい傾向</h3><ul class="pill-list">${mainRole.cautions.map(s=>`<li>⚠️ ${s}</li>`).join('')}</ul></div>
+   </div>
+
+   <div class="card">
+     <h3>協働・配置のヒント</h3>
+     <p>${mainRole.tips}</p>
+     ${collabAdvice(it)}
+   </div>
+
+   <div class="card" style="text-align:center">
+     <div class="btnrow" style="justify-content:center">
+       <button class="btn" id="saveJsonBtn">結果をファイル保存（.json）</button>
+       <button class="btn ghost" id="toTeamBtn">チーム分析に追加する</button>
+       <button class="btn ghost" id="retakeBtn">もう一度診断する</button>
+     </div>
+     <p class="note" style="margin-top:8px">保存ファイルは「③ チーム分析」で読み込めます。氏名を入れていない場合は端末内のみで完結します。</p>
+   </div>`;
+
+  document.getElementById('saveJsonBtn').onclick=saveCurrentJson;
+  document.getElementById('toTeamBtn').onclick=()=>{addMember(CURRENT);switchView('team');};
+  document.getElementById('retakeBtn').onclick=()=>{resetQuiz();switchView('quiz');};
+}
+
+/* ---- 相性アドバイス ---- */
+function collabAdvice(it){
+  if(it.isFlexer) return `<p class="note">バランス型のあなたは、チームに不足している役割を見極めて補うと最も輝きます。「③ チーム分析」でチームの穴をチェックしてみてください。</p>`;
+  const comp={creator:"executor",advancer:"refiner",refiner:"advancer",executor:"creator"};
+  const c=ROLES[comp[it.primary]];
+  return `<p class="note">補完しやすい相手：<b>${c.name}</b>。異なる強みを持つため、組むと弱点を埋め合えます。</p>`;
+}
+
+/* ---- レーダー（SVG・4軸ダイヤ） ---- */
+function radarSVG(scores){
+  const cx=90,cy=90,R=70;
+  const pts=ZORDER.map((r,i)=>{
+    const ang=-Math.PI/2 + i*Math.PI/2;     // 上→右→下→左
+    const rad=R*(scores[r]/100);
+    return [cx+rad*Math.cos(ang), cy+rad*Math.sin(ang)];
+  });
+  const poly=pts.map(p=>p.map(n=>n.toFixed(1)).join(',')).join(' ');
+  // grid rings
+  let rings='';
+  [0.25,0.5,0.75,1].forEach(g=>{
+    const rp=ZORDER.map((r,i)=>{const a=-Math.PI/2+i*Math.PI/2;return [cx+R*g*Math.cos(a),cy+R*g*Math.sin(a)];});
+    rings+=`<polygon points="${rp.map(p=>p.join(',')).join(' ')}" fill="none" stroke="#e3e8f0"/>`;
+  });
+  const labels=ZORDER.map((r,i)=>{
+    const a=-Math.PI/2+i*Math.PI/2;const lx=cx+(R+14)*Math.cos(a),ly=cy+(R+14)*Math.sin(a);
+    const anch=Math.abs(Math.cos(a))<0.1?'middle':(Math.cos(a)>0?'start':'end');
+    return `<text x="${lx.toFixed(0)}" y="${(ly+4).toFixed(0)}" font-size="10" fill="#6b7686" text-anchor="${anch}">${ROLES[r].name}</text>`;
+  }).join('');
+  const dots=pts.map((p,i)=>`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="3" fill="${ROLES[ZORDER[i]].hex}"/>`).join('');
+  return `<svg width="180" height="180" viewBox="0 0 180 180" style="flex:0 0 auto">
+    ${rings}
+    <line x1="${cx}" y1="${cy-R}" x2="${cx}" y2="${cy+R}" stroke="#e3e8f0"/>
+    <line x1="${cx-R}" y1="${cy}" x2="${cx+R}" y2="${cy}" stroke="#e3e8f0"/>
+    <polygon points="${poly}" fill="rgba(91,75,191,.18)" stroke="#5b4bbf" stroke-width="2"/>
+    ${dots}${labels}</svg>`;
+}
+
+/* ============================================================
+   保存・チーム
+   ============================================================ */
+const LS_KEY='td_members_v1';
+function getMembers(){try{return JSON.parse(localStorage.getItem(LS_KEY))||[]}catch(e){return[]}}
+function setMembers(a){localStorage.setItem(LS_KEY,JSON.stringify(a));}
+
+function addMember(rec){
+  if(!rec) return;
+  const all=getMembers();
+  const r={name:rec.name||('無名'+(all.length+1)),scores:rec.scores,
+           primary:rec.interp.type,date:rec.date};
+  all.push(r); setMembers(all); renderTeam();
+}
+function saveCurrentJson(){
+  if(!CURRENT) return;
+  const data={app:"TeamDimensions",name:CURRENT.name,scores:CURRENT.scores,
+              primary:CURRENT.interp.type,date:CURRENT.date};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`診断結果_${(CURRENT.name||'匿名').replace(/[\\/:*?"<>|]/g,'')}_${CURRENT.date.replace(/[\/: ]/g,'-')}.json`;
+  a.click();
+}
+
+function renderTeam(){
+  const all=getMembers();
+  const body=document.getElementById('teamBody');
+  if(!all.length){body.innerHTML='<div class="card empty">まだメンバーがいません。診断結果を追加するか、保存ファイルを読み込んでください。</div>';return;}
+
+  // table
+  let rows='';
+  all.forEach((m,i)=>{
+    const p=ROLES[m.primary];
+    rows+=`<tr>
+      <td class="nm">${escapeHtml(m.name)}</td>
+      <td>${m.scores.creator.toFixed(0)}</td><td>${m.scores.advancer.toFixed(0)}</td>
+      <td>${m.scores.refiner.toFixed(0)}</td><td>${m.scores.executor.toFixed(0)}</td>
+      <td><span class="tag" style="background:${p.hex}">${p.name}</span></td>
+      <td><button class="btn sm ghost" data-del="${i}" style="padding:3px 9px">削除</button></td>
+    </tr>`;
+  });
+
+  // distribution
+  const count={creator:0,advancer:0,refiner:0,executor:0,flexer:0};
+  all.forEach(m=>count[m.primary]++);
+  // team average scores
+  const avg={creator:0,advancer:0,refiner:0,executor:0};
+  all.forEach(m=>ZORDER.forEach(r=>avg[r]+=m.scores[r]));
+  ZORDER.forEach(r=>avg[r]=avg[r]/all.length);
+
+  // z coverage
+  let zcov='';
+  ZORDER.forEach((r,i)=>{
+    const n=count[r];
+    const on=n>0||count.flexer>0;
+    zcov+=`<div class="zstep ${on?'':'dim'}" style="background:${ROLES[r].hex}">
+       ${ROLES[r].name}<br><span style="font-weight:400;font-size:11px">${n}名</span></div>`;
+    if(i<3) zcov+=`<div class="zarrow">▶</div>`;
+  });
+
+  // diagnosis
+  const diag=teamDiagnosis(count,all.length);
+
+  body.innerHTML=`
+   <div class="card">
+     <h3>メンバー一覧（${all.length}名）</h3>
+     <table>
+       <thead><tr><th>氏名/ID</th><th>クリ<br>エイター</th><th>アド<br>バンサー</th><th>リファ<br>イナー</th><th>エクセ<br>キューター</th><th>主要タイプ</th><th></th></tr></thead>
+       <tbody>${rows}</tbody>
+     </table>
+   </div>
+
+   <div class="card">
+     <h3>Zプロセスの充足状況</h3>
+     <p class="note">発想→推進→洗練→実行。各局面を主要タイプとする人数です。0名の局面はチームの弱点になりやすいところ。</p>
+     <div class="zproc">${zcov}</div>
+     ${count.flexer?`<p class="note">フレックサー：${count.flexer}名（不足局面を補える調整役）</p>`:''}
+   </div>
+
+   <div class="card">
+     <h3>チーム平均バランス</h3>
+     <div class="scorebars">
+       ${ZORDER.map(r=>`<div class="row"><div class="nm">${ROLES[r].name}</div>
+         <div class="track"><div class="fill" style="width:${avg[r]}%;background:${ROLES[r].hex}"></div></div>
+         <div class="pct">${avg[r].toFixed(0)}</div></div>`).join('')}
+     </div>
+   </div>
+
+   <div class="card">
+     <h3>診断と提案</h3>
+     ${diag}
+   </div>`;
+
+  body.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{
+    const a=getMembers();a.splice(+b.dataset.del,1);setMembers(a);renderTeam();
+  });
+}
+
+function teamDiagnosis(count,total){
+  let out=[];
+  const missing=ZORDER.filter(r=>count[r]===0);
+  const half=Math.ceil(total/2);
+  const over=ZORDER.filter(r=>count[r]>=Math.max(2,half) && count[r]/total>0.5);
+
+  if(missing.length){
+    out.push(`<div class="diag-item" style="border-color:#c0392b">
+      <b>⚠️ 不足している役割：${missing.map(r=>ROLES[r].name).join('・')}</b><br>
+      ${missing.map(r=>`「${ROLES[r].short}」（${ROLES[r].name}）`).join('と')}を主に担う人がいません。
+      ${missing.includes('creator')?'新しい発想が生まれにくい／':''}${missing.includes('advancer')?'物事を前に動かす推進力が弱い／':''}${missing.includes('refiner')?'検証・品質チェックが甘くなりやすい／':''}${missing.includes('executor')?'やり切る・完遂する力が不足しやすい／':''}
+      傾向があります。採用・配置や、サブ強み・フレックサーの活用で補強を。</div>`);
+  } else {
+    out.push(`<div class="diag-item" style="border-color:#2bb3a3"><b>✅ Zプロセスの4局面すべてに担い手がいます。</b> 発想から実行まで一気通貫で回せるバランスの良い構成です。</div>`);
+  }
+  if(over.length){
+    out.push(`<div class="diag-item" style="border-color:#e67e22">
+      <b>🔶 偏りのある役割：${over.map(r=>ROLES[r].name).join('・')}</b><br>
+      同タイプが多いと、強みが重なる一方で意思決定が同質化しがちです。
+      ${over.includes('refiner')?'慎重論が増え前進が遅れる／':''}${over.includes('creator')?'アイデア過多で収束しにくい／':''}${over.includes('advancer')?'勢いで進み検証不足になりやすい／':''}${over.includes('executor')?'目先の実行優先で発想が生まれにくい／':''}
+      点に注意。役割分担を意識的に整理すると効果的です。</div>`);
+  }
+  if(count.flexer){
+    out.push(`<div class="diag-item" style="border-color:#7a8699">
+      <b>🤝 フレックサーの活かし方</b><br>不足している役割（${(missing.length?missing.map(r=>ROLES[r].name).join('・'):'その時々で薄い局面')}）を、フレックサーに意識的に担ってもらうと全体が安定します。</div>`);
+  }
+  out.push(`<details style="margin-top:6px"><summary>役割バランスの考え方</summary>
+    <p class="note">理想は「4局面が欠けないこと」。少人数チームでは1人が複数役割を兼ねます。誰も担っていない局面を、各メンバーの“2番目に高いタイプ”でカバーできないかを検討するのがコツです。</p></details>`);
+  return out.join('');
+}
+
+/* ============================================================
+   入出力
+   ============================================================ */
+document.getElementById('addCurrentBtn').onclick=()=>{
+  if(!CURRENT){alert('先に「① 診断する」で結果を出してください。');return;}
+  addMember(CURRENT);
+};
+document.getElementById('loadFilesBtn').onclick=()=>document.getElementById('fileInput').click();
+document.getElementById('fileInput').onchange=e=>{
+  const files=[...e.target.files]; let ok=0,ng=0,done=0;
+  if(!files.length) return;
+  files.forEach(f=>{
+    const rd=new FileReader();
+    rd.onload=()=>{
+      try{
+        const d=JSON.parse(rd.result);
+        if(d&&d.scores&&d.primary){
+          const all=getMembers();
+          all.push({name:d.name||'無名',scores:d.scores,primary:d.primary,date:d.date||''});
+          setMembers(all); ok++;
+        } else ng++;
+      }catch(err){ng++;}
+      if(++done===files.length){renderTeam();alert(`読み込み完了：成功 ${ok}件${ng?` / 失敗 ${ng}件`:''}`);}
+    };
+    rd.readAsText(f);
+  });
+  e.target.value='';
+};
+document.getElementById('exportCsvBtn').onclick=()=>{
+  const all=getMembers();
+  if(!all.length){alert('メンバーがいません。');return;}
+  let csv='﻿氏名/ID,クリエイター,アドバンサー,リファイナー,エクセキューター,主要タイプ,診断日\n';
+  all.forEach(m=>{
+    csv+=`"${(m.name||'').replace(/"/g,'""')}",${m.scores.creator.toFixed(0)},${m.scores.advancer.toFixed(0)},${m.scores.refiner.toFixed(0)},${m.scores.executor.toFixed(0)},${ROLES[m.primary].name},${m.date||''}\n`;
+  });
+  const blob=new Blob([csv],{type:'text/csv'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='チーム役割一覧.csv';a.click();
+};
+document.getElementById('clearTeamBtn').onclick=()=>{
+  if(confirm('メンバー一覧をすべて消去します。よろしいですか？')){setMembers([]);renderTeam();}
+};
+
+/* ============================================================
+   提出・リセット・ナビ
+   ============================================================ */
+document.getElementById('submitBtn').onclick=()=>{
+  const res=scoreQuiz();
+  const warn=document.getElementById('submitWarn');
+  if(res.error){
+    warn.textContent=`未回答が ${res.error.length} 問あります（Q${res.error.slice(0,8).join(', Q')}${res.error.length>8?' …':''}）。`;
+    const first=document.getElementById('q'+(res.error[0]-1));
+    if(first) first.scrollIntoView({behavior:'smooth',block:'center'});
+    return;
+  }
+  warn.textContent='';
+  const it=interpret(res.scores);
+  const now=new Date();
+  const date=`${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  const name=document.getElementById('uname').value.trim();
+  showResult({name,scores:res.scores,interp:it,date});
+  switchView('result');
+  window.scrollTo({top:0,behavior:'smooth'});
+};
+function resetQuiz(){
+  document.getElementById('uname').value='';
+  renderQuestions(); updateProgress();
+  document.getElementById('submitWarn').textContent='';
+}
+
+function switchView(v){
+  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.v===v));
+  document.querySelectorAll('.view').forEach(s=>s.classList.toggle('active',s.id===v));
+  if(v==='team') renderTeam();
+}
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{switchView(b.dataset.v);window.scrollTo({top:0});});
+
+/* ============================================================
+   タイプ解説タブ
+   ============================================================ */
+function renderGuide(){
+  const order=["creator","advancer","refiner","executor","flexer"];
+  let cards=order.map(k=>{
+    const r=ROLES[k];
+    return `<div class="card typecard" style="border-top-color:${r.hex}">
+      <h2 style="border:0;padding:0"><span class="badge" style="background:${r.hex}">${r.name}</span>
+        <span class="note">${r.en} ／ ${r.short}</span></h2>
+      <p>${r.desc}</p>
+      <div class="grid2">
+        <div><h3>強み</h3><ul class="pill-list">${r.strengths.map(s=>`<li>✅ ${s}</li>`).join('')}</ul></div>
+        <div><h3>注意点</h3><ul class="pill-list">${r.cautions.map(s=>`<li>⚠️ ${s}</li>`).join('')}</ul></div>
+      </div>
+      <p class="kv"><b>活かし方：</b>${r.tips}</p>
+    </div>`;
+  }).join('');
+  document.getElementById('guide').innerHTML=`
+    <div class="card">
+      <h2>Team Dimensions と Zプロセスとは</h2>
+      <p>チームの成果は「個々の能力の足し算」ではなく「役割のバランス」で決まります。Team Dimensions では、仕事の進み方を
+      <b>発想（クリエイター）→ 推進（アドバンサー）→ 洗練（リファイナー）→ 実行（エクセキューター）</b>という
+      4つの局面（＝<b>Zプロセス</b>）でとらえ、加えてどの役割も柔軟に担える<b>フレックサー</b>を置きます。</p>
+      <div class="zproc" style="margin-top:10px">
+        ${ZORDER.map((r,i)=>`<div class="zstep" style="background:${ROLES[r].hex}">${ROLES[r].name}<br>
+          <span style="font-weight:400;font-size:11px">${ROLES[r].short}</span></div>${i<3?'<div class="zarrow">▶</div>':''}`).join('')}
+      </div>
+      <p class="note" style="margin-top:8px">この4局面のどれかが欠けると、アイデアが形にならない／検証が甘い／やり切れない、といった停滞が起きます。本ツールは個人の傾向を測り、チームとして4局面を満たせているかを点検します。</p>
+    </div>
+    ${cards}
+    <div class="card note">
+      出典：Team Dimensions Profile（HRD株式会社）／添付資料に基づき作成。設問・採点は本ツール独自の実装で、公式の標準化スコアとは異なります。配置や評価の最終判断は、面談など人の観察と併せて行ってください。
+    </div>`;
+}
+
+/* ---- util ---- */
+function escapeHtml(s){return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+/* ---- init ---- */
+renderQuestions();
+renderGuide();
+updateProgress();
+</script>
+</body>
+</html>
